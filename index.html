@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CODZ Compiler (Created By Saurabh Tripathi)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0a0b0f;
+      --surface:   #11131a;
+      --surface2:  #181b25;
+      --border:    #1e2130;
+      --border2:   #2a2f45;
+      --accent:    #7c6af7;
+      --accent2:   #5b4ee0;
+      --green:     #3ddc97;
+      --red:       #ff5f6d;
+      --yellow:    #ffd166;
+      --text:      #e2e4f0;
+      --muted:     #5a6080;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Space Grotesk', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(124,106,247,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,106,247,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── GLOW ORBS ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 { width: 400px; height: 400px; background: rgba(124,106,247,0.12); top: -100px; left: -100px; }
+    .orb-2 { width: 300px; height: 300px; background: rgba(61,220,151,0.07); bottom: 0; right: 0; }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      background: rgba(10,11,15,0.8);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo span { color: var(--accent); }
+
+    .header-badges { display: flex; gap: 8px; }
+    .badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+    }
+    .badge.live { border-color: rgba(61,220,151,0.3); color: var(--green); }
+    .badge.live::before { content: '● '; }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 24px 40px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 20px;
+      min-height: calc(100vh - 65px);
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .lang-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .lang-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .lang-tab:hover { color: var(--text); background: var(--surface2); }
+    .lang-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+    }
+    .lang-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    .toolbar-right { display: flex; gap: 8px; margin-left: auto; }
+    .btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-ghost {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+    .btn-run {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 0 20px rgba(124,106,247,0.3);
+    }
+    .btn-run:hover { box-shadow: 0 0 30px rgba(124,106,247,0.5); transform: translateY(-1px); }
+    .btn-run:active { transform: translateY(0); }
+    .btn-run:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── EDITOR AREA ── */
+    .editor-area {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .panel-title {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .panel-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    .traffic-lights { display: flex; gap: 6px; }
+    .tl { width: 12px; height: 12px; border-radius: 50%; }
+    .tl-r { background: #ff5f57; }
+    .tl-y { background: #febc2e; }
+    .tl-g { background: #28c840; }
+
+    /* ── CODE EDITOR ── */
+    .code-editor-wrap {
+      flex: 1;
+      display: flex;
+      position: relative;
+      min-height: 400px;
+    }
+
+    .line-numbers {
+      padding: 16px 12px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
+      text-align: right;
+      user-select: none;
+      border-right: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+      min-width: 48px;
+    }
+
+    #code-editor {
+      flex: 1;
+      padding: 16px;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: var(--mono);
+      font-size: 13.5px;
+      line-height: 1.7;
+      color: var(--text);
+      tab-size: 2;
+      width: 100%;
+      caret-color: var(--accent);
+    }
+    #code-editor::selection { background: rgba(124,106,247,0.3); }
+
+    /* ── RIGHT PANEL ── */
+    .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+    /* stdin */
+    .stdin-area { flex-shrink: 0; }
+    .stdin-area .panel { max-height: 150px; }
+    #stdin-input {
+      flex: 1;
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      width: 100%;
+      min-height: 80px;
+    }
+    #stdin-input::placeholder { color: var(--muted); }
+
+    /* output */
+    .output-panel { flex: 1; }
+    .output-body {
+      flex: 1;
+      padding: 16px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-y: auto;
+      min-height: 200px;
+    }
+    .output-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      min-height: 200px;
+      color: var(--muted);
+      gap: 10px;
+      text-align: center;
+    }
+    .output-placeholder .big-icon { font-size: 36px; opacity: 0.3; }
+    .output-placeholder p { font-size: 13px; }
+
+    .output-success { color: var(--green); }
+    .output-error { color: var(--red); }
+    .output-stderr { color: var(--yellow); }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .status-item { display: flex; align-items: center; gap: 5px; }
+    .status-item .indicator { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+    .status-item.success .indicator { background: var(--green); }
+    .status-item.error .indicator { background: var(--red); }
+    .status-item.running .indicator {
+      background: var(--accent);
+      animation: pulse 1s infinite;
+    }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.3s ease; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .editor-area { grid-template-columns: 1fr; }
+      header { padding: 12px 16px; }
+      main { padding: 16px 12px; }
+      .lang-tabs { overflow-x: auto; }
+    }
+
+    /* AI EXPLAINER */
+    .ai-panel {
+      margin-top: 12px;
+      border: 1px solid rgba(124,106,247,0.3);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(124,106,247,0.05);
+      display: none;
+    }
+    .ai-panel.visible { display: block; }
+    .ai-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(124,106,247,0.2);
+      background: rgba(124,106,247,0.08);
+    }
+    .ai-title { font-family: var(--mono); font-size: 12px; color: var(--accent); display: flex; gap: 8px; align-items: center; }
+    .ai-body { padding: 16px; font-family: var(--mono); font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+    .ai-body .ai-code {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 8px 0;
+      overflow-x: auto;
+      display: block;
+    }
+    .btn-ai {
+      background: linear-gradient(135deg, rgba(124,106,247,0.2), rgba(91,78,224,0.2));
+      border: 1px solid rgba(124,106,247,0.4);
+      color: var(--accent);
+    }
+    .btn-ai:hover { background: linear-gradient(135deg, rgba(124,106,247,0.35), rgba(91,78,224,0.35)); }
+    .btn-ai:disabled { opacity: 0.4; cursor: not-allowed; }
+    .ai-copy-btn {
+      font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+      border-radius: 6px; border: 1px solid var(--border2);
+      background: var(--surface2); color: var(--muted); cursor: pointer;
+    }
+    .ai-copy-btn:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    CODZ<span>Compiler</span>
+  </div>
+  <div class="header-badges">
+    <span class="badge live">Online</span>
+    <span class="badge">Write your Code</span>
+    <span class="badge">v1.0</span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="lang-tabs" id="lang-tabs">
+      <button class="lang-tab active" data-lang="python">
+        <span class="lang-dot" style="background:#3ddc97"></span>Python
+      </button>
+      <button class="lang-tab" data-lang="javascript">
+        <span class="lang-dot" style="background:#ffd166"></span>JavaScript
+      </button>
+      <button class="lang-tab" data-lang="cpp">
+        <span class="lang-dot" style="background:#7c6af7"></span>C++
+      </button>
+      <button class="lang-tab" data-lang="c">
+        <span class="lang-dot" style="background:#5b9bd5"></span>C
+      </button>
+      <button class="lang-tab" data-lang="java">
+        <span class="lang-dot" style="background:#ff5f6d"></span>Java
+      </button>
+    </div>
+
+    <div class="toolbar-right">
+      <button class="btn btn-ghost" id="btn-clear">🗑 Clear</button>
+      <button class="btn btn-ai" id="btn-ai" style="display:none">✨ Fix with AI</button>
+      <button class="btn btn-ghost" id="btn-copy">📋 Copy</button>
+      <button class="btn btn-run" id="btn-run">
+        <span id="run-icon">▶</span>
+        <span id="run-label">Run</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- EDITOR AREA -->
+  <div class="editor-area">
+
+    <!-- LEFT: CODE EDITOR -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="traffic-lights">
+          <div class="tl tl-r"></div>
+          <div class="tl tl-y"></div>
+          <div class="tl tl-g"></div>
+        </div>
+        <div class="panel-title">
+          <div class="dot"></div>
+          <span id="file-name">solution.py</span>
+        </div>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="line-col">Ln 1, Col 1</span>
+      </div>
+      <div class="code-editor-wrap">
+        <div class="line-numbers" id="line-numbers">1</div>
+        <textarea id="code-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+      </div>
+    </div>
+
+    <!-- RIGHT COL -->
+    <div class="right-col">
+
+      <!-- STDIN -->
+      <div class="stdin-area">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="dot" style="background:var(--yellow)"></div>
+              stdin · Input
+            </div>
+          </div>
+          <textarea id="stdin-input" placeholder="Enter input here (optional)..."></textarea>
+        </div>
+      </div>
+
+      <!-- OUTPUT -->
+      <div class="output-panel panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <div class="dot" style="background:var(--green)" id="out-dot"></div>
+            stdout · Output
+          </div>
+          <span id="exec-time" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></span>
+        </div>
+        <div class="output-body" id="output-body">
+          <div class="output-placeholder" id="output-placeholder">
+            <div class="big-icon">⚡</div>
+            <p>Write code and hit Run</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+      <!-- AI EXPLAINER PANEL -->
+      <div class="ai-panel" id="ai-panel">
+        <div class="ai-header">
+          <div class="ai-title">✨ AI Error Explainer</div>
+          <button class="ai-copy-btn" id="ai-copy-btn">📋 Copy fix</button>
+        </div>
+        <div class="ai-body" id="ai-body">Analyzing your error...</div>
+      </div>
+
+    </div><!-- end right-col -->
+
+  </div><!-- end editor-area -->
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="status-item" id="status-item">
+      <div class="indicator"></div>
+      <span id="status-text">Ready</span>
+    </div>
+    <div class="status-item">
+      <span id="lang-status">Python 3.10</span>
+    </div>
+    <div class="status-item" style="margin-left:auto">
+      <span>Docker · Sandboxed</span>
+    </div>
+    <div class="status-item">
+      <span>10s limit · 128MB</span>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const BACKEND = '';
+
+  const LANG_META = {
+    python:     { file: 'solution.py',  lang: 'Python 3.10',  placeholder: '# Write Python here\nprint("Hello, World!")' },
+    javascript: { file: 'solution.js',  lang: 'Node.js 18',   placeholder: '// Write JavaScript here\nconsole.log("Hello, World!");' },
+    cpp:        { file: 'solution.cpp', lang: 'G++ (C++17)',   placeholder: '#include <iostream>\nusing namespace std;\n\nint main() {\n  cout << "Hello, World!" << endl;\n  return 0;\n}' },
+    c:          { file: 'solution.c',   lang: 'GCC (C)',       placeholder: '#include <stdio.h>\n\nint main() {\n  printf("Hello, World!\\n");\n  return 0;\n}' },
+    java:       { file: 'Main.java',    lang: 'OpenJDK 17',   placeholder: 'public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello, World!");\n  }\n}' },
+  };
+
+  let currentLang = 'python';
+  let running = false;
+
+  const editor     = document.getElementById('code-editor');
+  const lineNums   = document.getElementById('line-numbers');
+  const outputBody = document.getElementById('output-body');
+  const placeholder = document.getElementById('output-placeholder');
+  const btnRun     = document.getElementById('btn-run');
+  const runIcon    = document.getElementById('run-icon');
+  const runLabel   = document.getElementById('run-label');
+  const execTime   = document.getElementById('exec-time');
+  const statusItem = document.getElementById('status-item');
+  const statusText = document.getElementById('status-text');
+  const langStatus = document.getElementById('lang-status');
+  const fileName   = document.getElementById('file-name');
+  const lineCol    = document.getElementById('line-col');
+  const outDot     = document.getElementById('out-dot');
+
+  // Init
+  editor.value = LANG_META[currentLang].placeholder;
+  updateLineNumbers();
+
+  // Lang tabs
+  document.getElementById('lang-tabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.lang-tab');
+    if (!tab) return;
+    document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentLang = tab.dataset.lang;
+    const meta = LANG_META[currentLang];
+    fileName.textContent = meta.file;
+    langStatus.textContent = meta.lang;
+    editor.value = meta.placeholder;
+    updateLineNumbers();
+    clearOutput();
+  });
+
+  // Line numbers
+  function updateLineNumbers() {
+    const lines = editor.value.split('\n').length;
+    lineNums.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+  }
+
+  editor.addEventListener('input', updateLineNumbers);
+  editor.addEventListener('scroll', () => { lineNums.scrollTop = editor.scrollTop; });
+
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = editor.selectionStart;
+      editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(editor.selectionEnd);
+      editor.selectionStart = editor.selectionEnd = s + 2;
+      updateLineNumbers();
+    }
+    // Ctrl+Enter to run
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runCode();
+  });
+
+  editor.addEventListener('keyup', updateCursor);
+  editor.addEventListener('click', updateCursor);
+  function updateCursor() {
+    const text = editor.value.slice(0, editor.selectionStart);
+    const lines = text.split('\n');
+    lineCol.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
+  }
+
+  // Clear
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    editor.value = '';
+    updateLineNumbers();
+    clearOutput();
+  });
+
+  // Copy
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(editor.value);
+    document.getElementById('btn-copy').textContent = '✓ Copied!';
+    setTimeout(() => document.getElementById('btn-copy').textContent = '📋 Copy', 1500);
+  });
+
+  function clearOutput() {
+    outputBody.innerHTML = '<div class="output-placeholder" id="output-placeholder"><div class="big-icon">⚡</div><p>Write code and hit Run</p></div>';
+    execTime.textContent = '';
+    outDot.style.background = 'var(--green)';
+    setStatus('ready');
+  }
+
+  function setStatus(state, msg) {
+    statusItem.className = 'status-item ' + state;
+    const map = { ready: 'Ready', running: 'Running…', success: 'Execution complete', error: 'Error' };
+    statusText.textContent = msg || map[state] || state;
+  }
+
+  // RUN
+  btnRun.addEventListener('click', runCode);
+
+  async function runCode() {
+    if (running) return;
+    const code = editor.value.trim();
+    if (!code) return;
+
+    running = true;
+    btnRun.disabled = true;
+    runIcon.innerHTML = '<div class="spinner"></div>';
+    runLabel.textContent = 'Running…';
+    setStatus('running');
+    execTime.textContent = '';
+    outDot.style.background = 'var(--accent)';
+
+    outputBody.innerHTML = `
+      <div style="color:var(--muted);font-family:var(--mono);font-size:13px;display:flex;align-items:center;gap:10px;padding:8px 0">
+        <div class="spinner"></div> Executing in Docker sandbox…
+      </div>`;
+
+    try {
+      const res = await fetch(`${BACKEND}/api/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: currentLang,
+          code: editor.value,
+          stdin: document.getElementById('stdin-input').value,
+        }),
+      });
+
+      const data = await res.json();
+      showOutput(data);
+    } catch (err) {
+      showOutput({ success: false, error: `Cannot connect to backend at ${BACKEND}\n\n${err.message}`, execTime: 0 });
+    } finally {
+      running = false;
+      btnRun.disabled = false;
+      runIcon.textContent = '▶';
+      runLabel.textContent = 'Run';
+    }
+  }
+
+  function showOutput(data) {
+    const t = data.execTime ? `${data.execTime}ms` : '';
+    execTime.textContent = t;
+
+    let html = '<div class="fade-in" style="font-family:var(--mono);font-size:13px;line-height:1.7">';
+
+    if (data.success) {
+      outDot.style.background = 'var(--green)';
+      setStatus('success');
+      if (data.output) {
+        html += `<pre class="output-success">${escHtml(data.output)}</pre>`;
+      } else {
+        html += `<span style="color:var(--muted)">// No output</span>`;
+      }
+      if (data.error) {
+        html += `<pre class="output-stderr" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">⚠ stderr:\n${escHtml(data.error)}</pre>`;
+      }
+    } else {
+      outDot.style.background = 'var(--red)';
+      setStatus('error');
+      html += `<pre class="output-error">${escHtml(data.error || 'Unknown error')}</pre>`;
+      if (data.output) {
+        html += `<pre class="output-success" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">${escHtml(data.output)}</pre>`;
+      }
+    }
+
+    if (t) {
+      html += `<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);color:var(--muted);font-size:11px">⏱ ${t} · ${LANG_META[currentLang].lang} · Docker</div>`;
+    }
+
+    html += '</div>';
+    outputBody.innerHTML = html;
+
+    // Show/hide AI button based on error
+    if (!data.success || data.error) {
+      lastError = data.error || '';
+      lastOutput = data.output || '';
+      btnAi.style.display = 'flex';
+      aiPanel.classList.remove('visible');
+    } else {
+      lastError = '';
+      btnAi.style.display = 'none';
+      aiPanel.classList.remove('visible');
+    }
+  }
+
+
+  // AI EXPLAIN
+  const btnAi   = document.getElementById('btn-ai');
+  const aiPanel = document.getElementById('ai-panel');
+  const aiBody  = document.getElementById('ai-body');
+  let lastError = '';
+  let lastOutput = '';
+
+  document.getElementById('ai-copy-btn').addEventListener('click', () => {
+    const codeMatch = aiBody.textContent.match(/CORRECTED CODE:[\s\S]*?```[a-z]*\n([\s\S]*?)```/);
+    const toCopy = codeMatch ? codeMatch[1].trim() : aiBody.textContent;
+    navigator.clipboard.writeText(toCopy);
+    document.getElementById('ai-copy-btn').textContent = '✓ Copied!';
+    setTimeout(() => document.getElementById('ai-copy-btn').textContent = '📋 Copy fix', 1500);
+  });
+
+  btnAi.addEventListener('click', async () => {
+    if (!lastError) return;
+    btnAi.disabled = true;
+    btnAi.textContent = '⏳ Analyzing...';
+    aiPanel.classList.add('visible');
+    aiBody.textContent = 'AI is analyzing your error...';
+
+    try {
+      const res = await fetch('/api/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: currentLang,
+          code: editor.value,
+          error: lastError,
+          output: lastOutput,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        renderAiResponse(data.explanation);
+      } else {
+        aiBody.textContent = '❌ ' + (data.error || 'AI failed');
+      }
+    } catch (e) {
+      aiBody.textContent = '❌ Cannot reach AI: ' + e.message;
+    } finally {
+      btnAi.disabled = false;
+      btnAi.textContent = '✨ Fix with AI';
+    }
+  });
+
+  function renderAiResponse(text) {
+    // Render code blocks nicely
+    const html = escHtml(text).replace(
+      /```[a-z]*\n([\s\S]*?)```/g,
+      (_, code) => `<code class="ai-code">${code}</code>`
+    );
+    aiBody.innerHTML = html;
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
